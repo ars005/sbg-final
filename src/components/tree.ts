@@ -6,6 +6,7 @@ import {
   CylinderGeometry,
   SphereGeometry,
   TextureLoader,
+  MeshStandardMaterial,
 } from "three";
 
 export const createTree = (x: number, y: number, z: number): Group => {
@@ -24,16 +25,17 @@ export const createTree = (x: number, y: number, z: number): Group => {
 
   // Create leaves
   const leavesGeometry = new SphereGeometry(Math.random() * 1.5 + 3, 24, 24); // Random size for the leaves
-  const leavesMaterial = new MeshBasicMaterial({
+  const leavesMaterial = new MeshStandardMaterial({
     map: leavesTexture,
-    transparent: true,
+    normalMap: leavesTexture,
+    roughness: 1,
   });
   const leaves = new Mesh(leavesGeometry, leavesMaterial);
   leaves.position.y = trunkHeight;
 
   tree.add(trunk);
   tree.add(leaves);
-
+  tree.scale.setScalar(2);
   tree.position.set(x, y, z);
 
   return tree;

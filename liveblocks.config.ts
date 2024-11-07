@@ -6,11 +6,13 @@ declare global {
     Presence: {
       // Example, real-time cursor coordinates
       // cursor: { x: number; y: number };
-      position: {
+      position?: {
         x: number;
         y: number;
         z: number;
       } | null;
+      health?: number | null;
+      bullets?: number | null;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.

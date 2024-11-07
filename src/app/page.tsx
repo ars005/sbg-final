@@ -4,30 +4,19 @@ import { createHouse } from "@/components/house";
 import { createHuman } from "@/components/human";
 import { initGame } from "@/components/init";
 import { createTree } from "@/components/tree";
+import { Human } from "@/types";
 import { isOverlapping } from "@/utils";
 import { useMyPresence, useOthers } from "@liveblocks/react/suspense";
 import { useEffect, useRef } from "react";
 import {
-  BoxGeometry,
   Mesh,
   MeshStandardMaterial,
-  Object3D,
+  Raycaster,
   Scene,
   SphereGeometry,
   Vector2,
   Vector3,
 } from "three";
-
-// Define the ExtendedObject3D interface
-interface ExtendedObject3D extends Object3D {
-  userData: {
-    hit?: boolean;
-    velocity?: Vector3;
-    id?: string;
-  };
-}
-
-// Define the position interface for clarity
 
 export default function Game() {
   const mountRef = useRef<HTMLCanvasElement | null>(null);
@@ -35,13 +24,13 @@ export default function Game() {
 
   const [myPresence, updateMyPresence] = useMyPresence();
   const others = useOthers();
-  const enemies = useRef<ExtendedObject3D[]>([]); // Store enemies as ExtendedObject3D
-  const sceneRef = useRef<Scene | null>(null); // Ref for scene
+  const enemies = useRef<Human[]>([]);
+  const sceneRef = useRef<Scene | null>(null);
 
   useEffect(() => {
     const canvas = document.querySelector("#canvas") as HTMLCanvasElement;
     const { scene, camera, renderer, controls } = initGame(canvas);
-    sceneRef.current = scene; // Store the scene in ref
+    sceneRef.current = scene;
 
     const minDistance = 10;
     const placedTreePositions: { x: number; z: number }[] = [];
@@ -63,31 +52,30 @@ export default function Game() {
       }
     });
 
-    const character = createHuman() as ExtendedObject3D;
+    const character = createHuman() as Human;
+    character.userData.bullets = 50;
+    character.userData.health = 100;
 
     scene.add(character);
 
-    camera.position.z = 10;
+    camera.position.z = 5;
     camera.lookAt(character.position);
 
     const enemyMaterial = new MeshStandardMaterial({ color: 0x0000ff });
 
-    // Create enemies for existing characters in 'others' initially
     others.forEach((other) => {
-      const enemy = new Mesh(
-        new BoxGeometry(5, 5, 5),
-        enemyMaterial.clone()
-      ) as ExtendedObject3D;
+      const enemy = createHuman() as Human;
+
       enemy.position.set(Math.random() * 20 - 50, 0.5, Math.random() * 20 - 50);
       enemy.userData.hit = false;
-      enemy.userData.id = other.id; // Assuming other.id is unique for each player
+      enemy.userData.id = other.id;
       scene.add(enemy);
       enemies.current.push(enemy);
     });
 
-    let projectiles: ExtendedObject3D[] = [];
+    let projectiles: Human[] = [];
     const moveSpeed = 0.3;
-    const aimRadius = 200;
+    const aimRadius = 100;
 
     let aimDirection = new Vector2(0, -1);
     const aimDot = document.querySelector("#aimDot") as HTMLDivElement;
@@ -103,14 +91,25 @@ export default function Game() {
       keys[event.key] = false;
     });
 
+    const raycaster = new Raycaster();
     const handleMovement = () => {
       const direction = new Vector3();
-      if (keys["ArrowUp"] || keys["w"]) direction.z -= moveSpeed;
-      if (keys["ArrowDown"] || keys["s"]) direction.z += moveSpeed;
-      if (keys["ArrowLeft"] || keys["a"]) direction.x -= moveSpeed;
-      if (keys["ArrowRight"] || keys["d"]) direction.x += moveSpeed;
+      if (keys["ArrowUp"]) direction.x -= moveSpeed;
+      if (keys["ArrowDown"]) direction.x += moveSpeed;
+      if (keys["ArrowLeft"]) direction.z += moveSpeed;
+      if (keys["ArrowRight"]) direction.z -= moveSpeed;
 
+      direction.normalize();
+
+      // raycaster.set(character.position, direction);
+      // const intersects = raycaster.intersectObjects(scene.children);
+      // if (intersects.length === 0 || intersects[0].distance > moveSpeed) {
+      // move character and camera
+      // } else {
+      //   console.log("Collosion detected");
+      // }
       character.position.add(direction.applyQuaternion(character.quaternion));
+      camera.position.add(direction.applyQuaternion(character.quaternion));
     };
 
     const updateAim = (e: MouseEvent) => {
@@ -142,7 +141,7 @@ export default function Game() {
       const projectile = new Mesh(
         new SphereGeometry(0.5),
         new MeshStandardMaterial({ color: 0xff0000 })
-      ) as ExtendedObject3D;
+      ) as Human;
       projectile.position.copy(character.position);
 
       const direction = new Vector3(
@@ -160,12 +159,14 @@ export default function Game() {
         enemies.current.forEach((enemy) => {
           if (
             !enemy.userData.hit &&
-            projectile.position.distanceTo(enemy.position) < 20 &&
+            projectile.position.distanceTo(enemy.position) < 5 &&
             enemy instanceof Mesh
           ) {
             (enemy.material as MeshStandardMaterial).color.set(0xff0000);
             enemy.userData.hit = true;
             scene.remove(projectile);
+            scene.remove(enemy);
+            others.toSpliced(index, 1);
             projectiles.splice(index, 1);
           }
         });
@@ -176,6 +177,8 @@ export default function Game() {
       requestAnimationFrame(animate);
       handleMovement();
       controls.update();
+
+      // console.log(others[0]?.presence?.position);
 
       controls.target.copy(character.position);
 
@@ -208,46 +211,47 @@ export default function Game() {
       renderer.dispose();
       window.removeEventListener("mousemove", updateAim);
     };
-  }, []); // Runs only on mount
+  }, []);
 
-  // New useEffect to handle new characters from others
   useEffect(() => {
     const enemyMaterial = new MeshStandardMaterial({ color: 0x0000ff });
-    const scene = sceneRef.current; // Access the scene from the ref
-    if (!scene) return; // If the scene is not initialized, return early
+    const scene = sceneRef.current;
+    if (!scene) return;
 
-    // Create new enemies for new players
     others.forEach((other) => {
-      // Check if the enemy already exists
       if (!enemies.current.find((enemy) => enemy.userData.id === other.id)) {
-        const enemy = new Mesh(
-          new BoxGeometry(5, 5, 5),
-          enemyMaterial.clone()
-        ) as ExtendedObject3D;
-        enemy.position.set(
-          Math.random() * 20 - 50,
-          0.5,
-          Math.random() * 20 - 50
-        );
+        const enemy = createHuman() as Human;
         enemy.userData.hit = false;
-        enemy.userData.id = other.id; // Assuming other.id is unique for each player
-        scene.add(enemy); // Add the enemy to the scene
+        enemy.userData.id = other.id;
+        scene.add(enemy);
         enemies.current.push(enemy);
       }
     });
 
-    // Clean up removed players' enemies
     enemies.current.forEach((enemy, index) => {
       if (!others.find((other) => other.id === enemy.userData.id)) {
         scene.remove(enemy);
         enemies.current.splice(index, 1);
       }
     });
+
+    // console.log("changed");
+
+    others
+      .filter((other) => other.presence.position !== null)
+      .map((demo) => {
+        enemies.current
+          .filter((enemy) => enemy.userData.id === demo.id)
+          .map((test) => {
+            if (demo.presence.position)
+              test.position.copy(demo.presence.position);
+            console.log(">>>", test.position);
+          });
+      });
   }, [others]);
 
-  const handlePointerLeave = () => {};
-  const handlePointerMove = () => {};
-  console.log(others);
+  // console.log(myPresence.position);
+
   return (
     <div className="relative overflow-hidden">
       <canvas ref={mountRef} id="canvas" className="w-full h-full" />

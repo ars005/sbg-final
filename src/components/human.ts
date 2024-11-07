@@ -88,7 +88,7 @@ export function createHuman(): Group {
 
   const gun = createGun();
   human.add(gun); // Attach gun to huma
-
+  human.position.z = 10;
   return human;
 }
 

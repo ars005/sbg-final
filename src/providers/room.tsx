@@ -12,7 +12,7 @@ export function Room({ children }: { children: ReactNode }) {
     <LiveblocksProvider
       publicApiKey={process.env.NEXT_PUBLIC_LIVEBLOCKS_API_KEY!}
     >
-      <RoomProvider id="my-room" initialPresence={{ position: null }}>
+      <RoomProvider id="my-room">
         <ClientSideSuspense fallback={<div>Loading…</div>}>
           {children}
         </ClientSideSuspense>

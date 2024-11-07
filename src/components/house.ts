@@ -47,7 +47,8 @@ export const createHouse = (
   house.add(window1);
   house.add(window2);
   house.add(door);
-  house.position.set(x, y, z);
+  house.position.set(x, y + 10, z);
+  house.scale.setScalar(10);
 
   return house;
 };
