@@ -2,7 +2,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { redirect } from "next/navigation";
 
-function page() {
+function Home() {
   const { data } = useSession();
   if (data?.user) {
     redirect(`/game/?email=${encodeURIComponent(data.user.email!)}`);
@@ -14,4 +14,4 @@ function page() {
     </div>
   );
 }
-export default page;
+export default Home;
