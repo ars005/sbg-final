@@ -19,7 +19,7 @@ export function initGame(canvas: HTMLCanvasElement) {
     55,
     window.innerWidth / window.innerHeight,
     0.1,
-    10000
+    1000
   );
 
   const renderer = new WebGLRenderer({
@@ -49,6 +49,7 @@ export function initGame(canvas: HTMLCanvasElement) {
   landTexture.wrapT = MirroredRepeatWrapping;
   const planeMaterial = new MeshBasicMaterial({ map: landTexture });
   const land = new Mesh(planeGeometry, planeMaterial);
+  land.name = "land";
   land.rotation.x = -Math.PI / 2;
 
   scene.add(land);

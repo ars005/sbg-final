@@ -1,4 +1,7 @@
 // Define Liveblocks types for your application
+
+import { LiveList } from "@liveblocks/client";
+
 // https://liveblocks.io/docs/api-reference/liveblocks-react#Typing-your-data
 declare global {
   interface Liveblocks {
@@ -6,19 +9,20 @@ declare global {
     Presence: {
       // Example, real-time cursor coordinates
       // cursor: { x: number; y: number };
-      position?: {
+      position: {
         x: number;
         y: number;
         z: number;
-      } | null;
-      health?: number | null;
-      bullets?: number | null;
+      };
+      health: number;
+      bullets: number;
+      hit: boolean;
     };
 
     // The Storage tree for the room, for useMutation, useStorage, etc.
     Storage: {
       // Example, a conflict-free list
-      // animals: LiveList<string>;
+      player: LiveList<string>;
     };
 
     // Custom user info set when authenticating with a secret key
@@ -26,8 +30,9 @@ declare global {
       id: string;
       info: {
         // Example properties, for useSelf, useUser, useOthers, etc.
-        // name: string;
-        // avatar: string;
+        name: string;
+        email: string;
+        avatar: string;
       };
     };
 

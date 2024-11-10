@@ -7,36 +7,43 @@ import {
   SphereGeometry,
   TextureLoader,
   MeshStandardMaterial,
+  Scene,
 } from "three";
+import { treePositions } from "./constants";
 
-export const createTree = (x: number, y: number, z: number): Group => {
-  const tree = new Group();
+export const createTree = (scene: Scene) => {
   const textureLoader = new TextureLoader();
-
   const barkTexture = textureLoader.load("/images/textures/bark.png");
   const leavesTexture = textureLoader.load("/images/textures/leaves.png");
 
-  // Randomize trunk height
-  const trunkHeight = Math.random() * 9 + 9; // Random height between 3 and 6
-  const trunkGeometry = new CylinderGeometry(1, 1, trunkHeight);
+  const trunkGeometry = new CylinderGeometry(1, 1, 1);
   const trunkMaterial = new MeshBasicMaterial({ map: barkTexture });
-  const trunk = new Mesh(trunkGeometry, trunkMaterial);
-  trunk.position.y = trunkHeight / 2; // Center the trunk based on its height
 
-  // Create leaves
-  const leavesGeometry = new SphereGeometry(Math.random() * 1.5 + 3, 24, 24); // Random size for the leaves
+  const leavesGeometry = new SphereGeometry(1, 24, 24);
   const leavesMaterial = new MeshStandardMaterial({
     map: leavesTexture,
     normalMap: leavesTexture,
     roughness: 1,
   });
-  const leaves = new Mesh(leavesGeometry, leavesMaterial);
-  leaves.position.y = trunkHeight;
 
-  tree.add(trunk);
-  tree.add(leaves);
-  tree.scale.setScalar(2);
-  tree.position.set(x, y, z);
+  treePositions.forEach(({ x, z }) => {
+    const tree = new Group();
 
-  return tree;
+    const trunkHeight = Math.random() * 9 + 9;
+    const trunk = new Mesh(trunkGeometry, trunkMaterial);
+    trunk.scale.y = trunkHeight;
+    trunk.position.y = trunkHeight / 2;
+
+    const leavesSize = Math.random() * 1.5 + 3;
+    const leaves = new Mesh(leavesGeometry, leavesMaterial);
+    leaves.scale.set(leavesSize, leavesSize, leavesSize);
+    leaves.position.y = trunkHeight;
+
+    tree.add(trunk);
+    tree.add(leaves);
+    tree.scale.setScalar(2);
+
+    tree.position.set(x, 0, z);
+    scene.add(tree);
+  });
 };
